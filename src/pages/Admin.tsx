@@ -30,6 +30,17 @@ export default function Admin() {
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
+  // Auth Modals State
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [forgotUsername, setForgotUsername] = useState('');
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
+
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangeLoading, setIsChangeLoading] = useState(false);
+
   // Filters
   const [filterCompany, setFilterCompany] = useState('all');
   const [filterTopic, setFilterTopic] = useState('all');
@@ -103,6 +114,59 @@ export default function Admin() {
       alert('Lỗi kết nối. Vui lòng kiểm tra lại mạng.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotUsername) return;
+
+    setIsForgotLoading(true);
+    try {
+      const response = await fetch(`${SCRIPT_URL}?action=forgotPassword&username=${encodeURIComponent(forgotUsername)}`);
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        alert('Gửi yêu cầu thành công! Vui lòng kiểm tra email để nhận mật khẩu mới. Bạn nên đổi lại mật khẩu theo ý muốn ngay sau khi đăng nhập nhé.');
+        setIsForgotPasswordOpen(false);
+        setForgotUsername('');
+      } else {
+        alert(data.message || 'Không tìm thấy tài khoản hoặc có lỗi xảy ra.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi kết nối. Vui lòng kiểm tra lại mạng.');
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      alert('Mật khẩu mới không khớp!');
+      return;
+    }
+
+    setIsChangeLoading(true);
+    try {
+      const response = await fetch(`${SCRIPT_URL}?action=changePassword&username=${encodeURIComponent(loginCompany)}&oldPassword=${encodeURIComponent(oldPassword)}&newPassword=${encodeURIComponent(newPassword)}`);
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        alert('Đổi mật khẩu thành công!');
+        setIsChangePasswordOpen(false);
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        alert(data.message || 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi kết nối. Vui lòng kiểm tra lại mạng.');
+    } finally {
+      setIsChangeLoading(false);
     }
   };
 
@@ -253,7 +317,16 @@ export default function Admin() {
             </div>
             
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-blue-100">Mật khẩu</label>
+              <div className="flex justify-between items-center">
+                <label className="block text-sm font-medium text-blue-100">Mật khẩu</label>
+                <button 
+                  type="button" 
+                  onClick={() => setIsForgotPasswordOpen(true)}
+                  className="text-sm text-[#ff9500] hover:text-[#ffaa33] transition-colors"
+                >
+                  Quên mật khẩu?
+                </button>
+              </div>
               <input
                 type="password"
                 required
@@ -273,6 +346,52 @@ export default function Admin() {
             </button>
           </form>
         </motion.div>
+
+        {/* Forgot Password Modal */}
+        {isForgotPasswordOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl"
+            >
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Quên mật khẩu</h3>
+              <p className="text-gray-500 mb-6">Nhập tên tài khoản hoặc email của bạn. Chúng tôi sẽ gửi mật khẩu mới về email đã đăng ký.</p>
+              
+              <form onSubmit={handleForgotPassword} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-700">Tài khoản hoặc Email</label>
+                  <input
+                    type="text"
+                    required
+                    value={forgotUsername}
+                    onChange={(e) => setForgotUsername(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#1992b0] focus:border-transparent transition-all"
+                    placeholder="Nhập tài khoản hoặc email..."
+                  />
+                </div>
+                
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPasswordOpen(false)}
+                    className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isForgotLoading}
+                    className="flex-1 py-3 px-4 bg-[#1992b0] text-white font-bold rounded-xl hover:bg-[#157a93] transition-colors disabled:opacity-70 flex justify-center items-center gap-2"
+                  >
+                    {isForgotLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Gửi yêu cầu
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
       </div>
     );
   }
@@ -309,7 +428,13 @@ export default function Admin() {
           </Link>
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-4 border-t border-gray-100 space-y-2">
+          <button 
+            onClick={() => setIsChangePasswordOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-xl font-medium transition-colors"
+          >
+            Đổi mật khẩu
+          </button>
           <button 
             onClick={() => { setIsLoggedIn(false); setPassword(''); setUsername(''); }}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl font-medium transition-colors"
@@ -698,6 +823,75 @@ export default function Admin() {
           </div>
         </div>
       </main>
+
+      {/* Change Password Modal */}
+      {isChangePasswordOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl"
+          >
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Đổi mật khẩu</h3>
+            
+            <form onSubmit={handleChangePassword} className="space-y-5">
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700">Mật khẩu hiện tại</label>
+                <input
+                  type="password"
+                  required
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#1992b0] focus:border-transparent transition-all"
+                  placeholder="Nhập mật khẩu hiện tại..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700">Mật khẩu mới</label>
+                <input
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#1992b0] focus:border-transparent transition-all"
+                  placeholder="Nhập mật khẩu mới..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700">Xác nhận mật khẩu mới</label>
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#1992b0] focus:border-transparent transition-all"
+                  placeholder="Nhập lại mật khẩu mới..."
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsChangePasswordOpen(false)}
+                  className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isChangeLoading}
+                  className="flex-1 py-3 px-4 bg-[#1992b0] text-white font-bold rounded-xl hover:bg-[#157a93] transition-colors disabled:opacity-70 flex justify-center items-center gap-2"
+                >
+                  {isChangeLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Cập nhật
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
