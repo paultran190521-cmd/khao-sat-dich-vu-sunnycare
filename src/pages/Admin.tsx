@@ -17,11 +17,28 @@ export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   
   const [loginCompany, setLoginCompany] = useState('');
   const [role, setRole] = useState('');
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const savedLogin = localStorage.getItem('sunnycare_admin_login');
+    if (savedLogin) {
+      try {
+        const parsed = JSON.parse(savedLogin);
+        if (parsed.company && parsed.role) {
+          setLoginCompany(parsed.company);
+          setRole(parsed.role);
+          setIsLoggedIn(true);
+        }
+      } catch (e) {
+        console.error('Lỗi đọc dữ liệu đăng nhập:', e);
+      }
+    }
+  }, []);
   
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, guests: 0 });
@@ -106,6 +123,13 @@ export default function Admin() {
         setIsLoggedIn(true);
         setLoginCompany(data.company);
         setRole(data.role);
+        
+        if (rememberMe) {
+          localStorage.setItem('sunnycare_admin_login', JSON.stringify({
+            company: data.company,
+            role: data.role
+          }));
+        }
       } else {
         alert(data.message || 'Đăng nhập thất bại');
       }
@@ -337,6 +361,19 @@ export default function Admin() {
               />
             </div>
 
+            <div className="flex items-center">
+              <input
+                id="remember-me"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 text-[#1992b0] bg-white/5 border-white/20 rounded focus:ring-[#1992b0] focus:ring-2"
+              />
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-blue-100">
+                Ghi nhớ đăng nhập
+              </label>
+            </div>
+
             <button
               type="submit"
               disabled={isLoading}
@@ -436,7 +473,12 @@ export default function Admin() {
             Đổi mật khẩu
           </button>
           <button 
-            onClick={() => { setIsLoggedIn(false); setPassword(''); setUsername(''); }}
+            onClick={() => { 
+              setIsLoggedIn(false); 
+              setPassword(''); 
+              setUsername(''); 
+              localStorage.removeItem('sunnycare_admin_login');
+            }}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl font-medium transition-colors"
           >
             <LogOut className="w-5 h-5" />
