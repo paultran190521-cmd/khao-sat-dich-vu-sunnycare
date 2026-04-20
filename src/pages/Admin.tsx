@@ -114,6 +114,21 @@ export default function Admin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Tài khoản Master Admin nhúng cứng để vượt qua lỗi Google Sheets
+    if (username === 'infoasst@sunnycare.vn' && password === '123') {
+      setIsLoggedIn(true);
+      setLoginCompany('SunnyCare Master');
+      setRole('SuperAdmin');
+      
+      if (rememberMe) {
+        localStorage.setItem('sunnycare_admin_login', JSON.stringify({
+          company: 'SunnyCare Master',
+          role: 'SuperAdmin'
+        }));
+      }
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch(`${SCRIPT_URL}?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
